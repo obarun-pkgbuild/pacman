@@ -1,0 +1,88 @@
+diff -Nuar -uar a/doc/repo-add.8.asciidoc b/doc/repo-add.8.asciidoc
+--- a/doc/repo-add.8.asciidoc	2018-05-14 11:02:18.000000000 +1100
++++ b/doc/repo-add.8.asciidoc	2018-06-02 09:49:40.817222540 +1100
+@@ -76,7 +76,9 @@
+ 	Remove old package files from the disk when updating their entry in the
+ 	database.
+ 
+-
++*-e, \--empty*::
++	Create an empty database.
++	
+ Example
+ -------
+ 'repo-add' foo.db.tar.xz <pkg1> [<pkg2> ...]
+diff -Nuar -uar a/scripts/po/fr.po b/scripts/po/fr.po
+--- a/scripts/po/fr.po	2018-05-28 10:24:09.000000000 +1100
++++ b/scripts/po/fr.po	2018-06-02 09:46:32.000000000 +1100
+@@ -1243,12 +1243,17 @@
+ 
+ #: scripts/repo-add.sh.in:64
+ msgid ""
+-"  -R, --remove      remove old package file from disk after updating database"
+-"\\n"
++"  -R, --remove      remove old package file from disk after updating database\\n"
+ msgstr ""
+ "-R, --remove supprime les paquets obsolètes du disque après la mise à jour "
+ "de la base de données\\n"
+ 
++#: sripts/repo-add.sh.in:65
++msgid ""
++"  -e, --empty      create an empty database"
++msgstr ""
++"-e, --empty      crée une database vide\\n"
++
+ #: scripts/repo-add.sh.in:66
+ msgid "Usage: repo-remove [options] <path-to-db> <packagename|delta> ...\\n"
+ msgstr ""
+diff -Nuar -uar a/scripts/repo-add.sh.in b/scripts/repo-add.sh.in
+--- a/scripts/repo-add.sh.in	2018-05-14 11:02:18.000000000 +1100
++++ b/scripts/repo-add.sh.in	2018-06-02 09:46:32.000000000 +1100
+@@ -41,6 +41,7 @@
+ LOCKFILE=
+ CLEAN_LOCK=0
+ USE_COLOR='y'
++EMPTY=0
+ 
+ # ensure we have a sane umask set
+ umask 0022
+@@ -62,6 +63,7 @@
+ 		printf -- "$(gettext "  -d, --delta       generate and add delta for package update\n")"
+ 		printf -- "$(gettext "  -n, --new         only add packages that are not already in the database\n")"
+ 		printf -- "$(gettext "  -R, --remove      remove old package file from disk after updating database\n")"
++		printf -- "$(gettext "  -e, --empty       create an empty database\n")"
+ 	elif [[ $cmd == "repo-remove" ]] ; then
+ 		printf -- "$(gettext "Usage: repo-remove [options] <path-to-db> <packagename|delta> ...\n")"
+ 		printf -- "\n"
+@@ -765,6 +767,9 @@
+ 		-v|--verify)
+ 			VERIFY=1
+ 			;;
++		-e|--empty)
++			EMPTY=1
++			;;
+ 		*)
+ 			args+=("$1")
+ 			;;
+@@ -812,13 +817,14 @@
+ prepare_repo_db
+ 
+ fail=0
+-for arg in "${args[@]:1}"; do
+-	case $cmd in
+-		repo-add) add "$arg" ;;
+-		repo-remove) remove "$arg" ;;
+-	esac || fail=1
+-done
+-
++if (( ! EMPTY ));then
++	for arg in "${args[@]:1}"; do
++		case $cmd in
++			repo-add) add "$arg" ;;
++			repo-remove) remove "$arg" ;;
++		esac || fail=1
++	done
++fi
+ # if the whole operation was a success, re-zip and rotate databases
+ if (( !fail )); then
+ 	msg "$(gettext "Creating updated database file '%s'")" "$REPO_DB_FILE"
